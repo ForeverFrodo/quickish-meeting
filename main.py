@@ -3,14 +3,14 @@ import time
 import RPi.GPIO as GPIO
 
 # GPIO setup
-GPIO.setmode(GPIO.BCM)
-INCREMENT_PIN = 17
-DECREMENT_PIN = 27
-MODE_PIN = 22
+GPIO.setmode(GPIO.BOARD)
+INCREMENT_PIN = 28
+DECREMENT_PIN = 3
+MODE_PIN = 27
 
-GPIO.setup(INCREMENT_PIN, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-GPIO.setup(DECREMENT_PIN, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-GPIO.setup(MODE_PIN, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+GPIO.setup(INCREMENT_PIN, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
+GPIO.setup(DECREMENT_PIN, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
+GPIO.setup(MODE_PIN, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
 
 def update_time():
     if mode_var.get() == "Clock":
@@ -68,7 +68,8 @@ def update_meeting_cost():
         clock_label.after(1000, update_meeting_cost)
 
 app = tk.Tk()
-app.title("Enhanced Clock and Meeting Cost")
+app.attributes('-fullscreen', True)
+app.title("Money Burner")
 
 mode_var = tk.StringVar(value="Clock")
 value = 0
