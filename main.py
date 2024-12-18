@@ -4,6 +4,7 @@ import time
 import tkinter as tk
 
 import RPi.GPIO as GPIO
+from PIL import Image, ImageSequence, ImageTk  # pip install pillow
 
 # fix broken environment variable
 if os.environ.get("DISPLAY", "") == "":
