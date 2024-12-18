@@ -38,7 +38,56 @@ class ClockMode(enum):
     BURN = 3
 
 
-clockMode: ClockMode = ClockMode.SIMPLE_CLOCK_DISPLAY
+class AnimatedGIF:
+    def __init__(
+        self,
+        canvas: tk.Canvas,
+        gif_path: str,
+        get_width: callable[[None], int],
+        get_height: callable[[None], int],
+    ) -> None:
+        self.canvas: tk.Canvas = canvas
+        self.get_width: callable[[None], int] = get_width
+        self.get_height: callable[[None], int] = get_height
+        self.update_coords()
+        self.gif_path: str = gif_path
+        self.sequence: list[ImageTk.PhotoImage] = []
+        self.load_frames()
+        self.index: int = 0
+        self.image_item: int = self.canvas.create_image(
+            self.x, self.y, anchor="center", image=self.sequence[0]
+        )
+        self.running: bool = False
+
+    def update_coords(self) -> None:
+        """Gets the center coordinate and saves it to self.x and self.y"""
+        self.x: int = int(self.get_width() / 2)
+        self.y: int = int(self.get_height() / 2)
+
+    def load_frames(self) -> None:
+        self.image = Image.open(self.gif_path)
+        for frame in ImageSequence.Iterator(self.image):
+            self.sequence.append(ImageTk.PhotoImage(frame))
+
+    def update_frame(self) -> None:
+        if self.running:
+            frame = self.sequence[self.index]
+            self.canvas.itemconfig(self.image_item, image=frame)
+            self.index = (self.index + 1) % len(self.sequence)
+            self.canvas.after(
+                100, self.update_frame
+            )  # Adjust the delay to control the speed
+
+    def start_animation(self) -> None:
+        self.running = True
+        self.canvas.itemconfigure(self.image_item, state="normal")
+        self.update_frame()
+
+    def stop_animation(self) -> None:
+        self.running = False
+        self.canvas.itemconfigure(self.image_item, state="hidden")
+
+
 clockMode: ClockMode = ClockMode.CLOCK
 
 numPeople = DEFAULT_NUM_PEOPLE
@@ -68,6 +117,10 @@ background_label: int = canvas.create_image(
 canvas.image = backgrounds[
     clockMode
 ]  # Keep a reference to avoid garbage collection
+
+animated_gif: AnimatedGIF = AnimatedGIF(
+    canvas, "./fire.gif", app.winfo_width, app.winfo_height
+)
 
 
 def update_background() -> None:
@@ -127,20 +180,23 @@ def next_event(channel: int) -> None:
     print("Next")
     if clockMode == ClockMode.CLOCK:
         update_background()
-        clockMode = 1
+        animated_gif.stop_animation()
         clockMode = ClockMode.SEL_PEEPS
         value_label.config(text="People in Meeting")
     elif clockMode == ClockMode.SEL_PEEPS:
         update_background()
+        animated_gif.stop_animation()
         clockMode = ClockMode.SEL_WAGE
         value_label.config(text="Cost per Person ($)")
     elif clockMode == ClockMode.SEL_WAGE:
         update_background()
+        animated_gif.stop_animation()
         clockMode = ClockMode.BURN
         value_label.config(text="Meeting Cost ($)")
         meetingStartTime = time.time()
     else:
         update_background()
+        animated_gif.start_animation()
         clockMode = ClockMode.CLOCK
         value_label.config(text="Waiting for Meeting")
     print(clockMode)
