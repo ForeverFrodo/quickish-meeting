@@ -1,84 +1,104 @@
 import tkinter as tk
 import time
 import RPi.GPIO as GPIO
+import os
+
+# fix broken environment variable
+if os.environ.get('DISPLAY','') == '':
+    print('no display found. Using :0.0')
+    os.environ.__setitem__('DISPLAY', ':0.0')
 
 # GPIO setup
-GPIO.setmode(GPIO.BOARD)
-INCREMENT_PIN = 28
-DECREMENT_PIN = 3
-MODE_PIN = 27
+GPIO.setmode(GPIO.BCM)
+INCREMENT_PIN = 0
+DECREMENT_PIN = 1
+MODE_PIN = 2
+AUX_PIN = 3
+DEFAULT_NUM_PEOPLE = 2
+DEFAULT_HOURLY_WAGE = 40  # dollars per hour
 
-GPIO.setup(INCREMENT_PIN, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
-GPIO.setup(DECREMENT_PIN, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
-GPIO.setup(MODE_PIN, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
+GPIO.setup(INCREMENT_PIN, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+GPIO.setup(DECREMENT_PIN, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+GPIO.setup(MODE_PIN, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+GPIO.setup(AUX_PIN, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 
-def update_time():
-    if mode_var.get() == "Clock":
-        current_time = time.strftime("%H:%M:%S")
-        clock_label.config(text=current_time)
-    clock_label.after(1000, update_time)
+# Clock mode is implemented as follows:
+#   0 -> simple clock display
+#   1 -> select number of people
+#   2 -> select hourly wage
+#   3 -> display money burned
+clockMode = 0
 
-def increment_value(channel):
-    global value
-    value += 1
-    display_value()
-
-def decrement_value(channel):
-    global value
-    if value > 0:
-        value -= 1
-    display_value()
-
-def display_value():
-    clock_label.config(text=str(value))
-
-def switch_mode(channel):
-    global people, cost_per_person, start_time, running
-    current_mode = mode_var.get()
-    if current_mode == "Clock":
-        mode_var.set("Set People")
-        value_label.config(text="People in Meeting")
-        value = 0
-        display_value()
-    elif current_mode == "Set People":
-        mode_var.set("Set Cost")
-        people = value
-        value_label.config(text="Cost per Person ($)")
-        value = 0
-        display_value()
-    elif current_mode == "Set Cost":
-        mode_var.set("Running")
-        cost_per_person = value
-        value_label.config(text="Meeting Cost ($)")
-        value = 0
-        running = True
-        start_time = time.time()
-        update_meeting_cost()
-    else:
-        mode_var.set("Clock")
-        running = False
-        update_time()
-
-def update_meeting_cost():
-    global running, value
-    if running:
-        elapsed_time = time.time() - start_time
-        total_cost = people * cost_per_person * (elapsed_time / 3600)
-        clock_label.config(text=f"${total_cost:.2f}")
-        clock_label.after(1000, update_meeting_cost)
+numPeople = DEFAULT_NUM_PEOPLE
+hourlyWage = DEFAULT_HOURLY_WAGE
+meetingStartTime = 0
 
 app = tk.Tk()
 app.attributes('-fullscreen', True)
 app.title("Money Burner")
 
-mode_var = tk.StringVar(value="Clock")
-value = 0
-people = 0
-cost_per_person = 0
-running = False
-start_time = 0
+def update_time():
+    global clockMode, numPeople, hourlyWage, meetingStartTime
+    if clockMode == 3:
+        elapsed_time = time.time() - meetingStartTime
+        total_cost = numPeople * hourlyWage * (elapsed_time / 3600)
+        clock_label.config(text=f"${total_cost:.2f}")
+    else:
+        current_time = time.strftime("%H:%M:%S")
+        clock_label.config(text=current_time)
+    clock_label.after(1000, update_time)
 
-value_label = tk.Label(app, text="", font=("Arial", 24))
+def increment_value(channel):
+    global clockMode, numPeople, hourlyWage, meetingStartTime
+    print("Increment")
+    if clockMode == 1:
+        numPeople += 1
+        display_value()
+    elif clockMode == 2:
+        hourlyWage += 1
+        display_value()
+
+def decrement_value(channel):
+    global clockMode, numPeople, hourlyWage, meetingStartTime
+    print("Decrement")
+    if clockMode == 1 and numPeople > 0:
+        numPeople -= 1
+        display_value()
+    elif clockMode == 2 and hourlyWage > 0:
+        hourlyWage -= 1
+        display_value()
+
+def display_value():
+    global clockMode, numPeople, hourlyWage, meetingStartTime
+    if clockMode == 1:
+        clock_label.config(text=str(numPeople))
+    elif clockMode == 2:
+        clock_label.config(text=str(hourlyWage))
+
+def next_event(channel):
+    global clockMode, numPeople, hourlyWage, meetingStartTime
+    print("Next")
+    if clockMode == 0:
+        clockMode = 1
+        value_label.config(text="People in Meeting")
+    elif clockMode == 1:
+        clockMode = 2
+        value_label.config(text="Cost per Person ($)")
+    elif clockMode == 2:
+        clockMode = 3
+        value_label.config(text="Meeting Cost ($)")
+        meetingStartTime = time.time()
+    else:
+        clockMode = 0
+        value_label.config(text="Waiting for Meeting")
+
+def exit_clock(channel):
+    print("Exiting")
+    global app
+    app.quit()
+    quit()
+
+value_label = tk.Label(app, text="Waiting for Meeting", font=("Arial", 24))
 value_label.pack()
 
 clock_label = tk.Label(app, font=("Arial", 48), bg="black", fg="white")
@@ -88,7 +108,8 @@ update_time()
 
 GPIO.add_event_detect(INCREMENT_PIN, GPIO.FALLING, callback=increment_value, bouncetime=300)
 GPIO.add_event_detect(DECREMENT_PIN, GPIO.FALLING, callback=decrement_value, bouncetime=300)
-GPIO.add_event_detect(MODE_PIN, GPIO.FALLING, callback=switch_mode, bouncetime=300)
+GPIO.add_event_detect(MODE_PIN, GPIO.FALLING, callback=next_event, bouncetime=300)
+GPIO.add_event_detect(AUX_PIN, GPIO.FALLING, callback=exit_clock, bouncetime=300)
 
 app.mainloop()
 
