@@ -47,6 +47,7 @@ meetingStartTime = 0
 app: tk.Tk = tk.Tk()
 app.attributes("-fullscreen", True)
 app.title("Money Burner")
+app.wm_attributes("-transparentcolor", "black")
 
 
 def update_time(repeat: bool = True) -> None:
