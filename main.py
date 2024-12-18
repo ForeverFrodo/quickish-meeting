@@ -128,16 +128,20 @@ def next_event(channel: int) -> None:
     if clockMode == ClockMode.CLOCK:
         update_background()
         clockMode = 1
+        clockMode = ClockMode.SEL_PEEPS
         value_label.config(text="People in Meeting")
     elif clockMode == ClockMode.SEL_PEEPS:
         update_background()
+        clockMode = ClockMode.SEL_WAGE
         value_label.config(text="Cost per Person ($)")
     elif clockMode == ClockMode.SEL_WAGE:
         update_background()
+        clockMode = ClockMode.BURN
         value_label.config(text="Meeting Cost ($)")
         meetingStartTime = time.time()
     else:
         update_background()
+        clockMode = ClockMode.CLOCK
         value_label.config(text="Waiting for Meeting")
     print(clockMode)
     update_time(False)
