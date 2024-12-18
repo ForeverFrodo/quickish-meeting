@@ -49,6 +49,32 @@ app.attributes("-fullscreen", True)
 app.title("Money Burner")
 app.wm_attributes("-transparentcolor", "black")
 
+backgrounds: dict[ClockMode, ImageTk.PhotoImage] = {
+    ClockMode.CLOCK: ImageTk.PhotoImage(Image.open("./clock.jpg")),
+    ClockMode.SEL_PEEPS: ImageTk.PhotoImage(Image.open("./selections.jpg")),
+    ClockMode.SEL_WAGE: ImageTk.PhotoImage(Image.open("./selections.jpg")),
+    ClockMode.BURN: ImageTk.PhotoImage(Image.open("./burn.jpg")),
+}
+
+canvas: tk.Canvas = tk.Canvas(app)
+canvas.pack(fill="both", expand=True)
+background_label: int = canvas.create_image(
+    int(app.winfo_width() / 2),
+    int(app.winfo_height() / 2),
+    anchor="center",
+    image=backgrounds[clockMode],
+)
+canvas.image = backgrounds[
+    clockMode
+]  # Keep a reference to avoid garbage collection
+
+
+def update_background() -> None:
+    new_photo = backgrounds[clockMode]
+    if new_photo != canvas.image:
+        canvas.itemconfig(background_label, image=new_photo)
+        canvas.image = new_photo  # Keep a reference to avoid garbage collection
+
 
 def update_time(repeat: bool = True) -> None:
     global clockMode, numPeople, hourlyWage, meetingStartTime
@@ -99,17 +125,18 @@ def next_event(channel: int) -> None:
     global clockMode, numPeople, hourlyWage, meetingStartTime
     print("Next")
     if clockMode == ClockMode.CLOCK:
+        update_background()
         clockMode = 1
         value_label.config(text="People in Meeting")
     elif clockMode == ClockMode.SEL_PEEPS:
-        clockMode = ClockMode.SELECT_HOURLY_WAGE
+        update_background()
         value_label.config(text="Cost per Person ($)")
     elif clockMode == ClockMode.SEL_WAGE:
-        clockMode = ClockMode.DISPLAY_BURNING_MONEY
+        update_background()
         value_label.config(text="Meeting Cost ($)")
         meetingStartTime = time.time()
     else:
-        clockMode = ClockMode.SIMPLE_CLOCK_DISPLAY
+        update_background()
         value_label.config(text="Waiting for Meeting")
     print(clockMode)
     update_time(False)
