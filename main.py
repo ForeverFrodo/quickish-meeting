@@ -122,12 +122,12 @@ def exit_clock(channel: int) -> None:
 
 
 value_label: tk.Label = tk.Label(
-    app, text="Waiting for Meeting", font=("Arial", 24)
+    app, text="Waiting for Meeting", font=("Courier", 24)
 )
 value_label.pack()
 
 clock_label: tk.Label = tk.Label(
-    app, font=("Arial", 48), bg="black", fg="white"
+    app, font=("Courier", 48), bg="black", fg="white"
 )
 clock_label.pack(fill="both", expand=1)
 
