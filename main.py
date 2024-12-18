@@ -37,7 +37,7 @@ app = tk.Tk()
 app.attributes('-fullscreen', True)
 app.title("Money Burner")
 
-def update_time():
+def update_time(repeat=True):
     global clockMode, numPeople, hourlyWage, meetingStartTime
     if clockMode == 3:
         elapsed_time = time.time() - meetingStartTime
@@ -46,7 +46,8 @@ def update_time():
     else:
         current_time = time.strftime("%H:%M:%S")
         clock_label.config(text=current_time)
-    clock_label.after(1000, update_time)
+    if repeat:
+        clock_label.after(1000, update_time)
 
 def increment_value(channel):
     global clockMode, numPeople, hourlyWage, meetingStartTime
@@ -57,6 +58,7 @@ def increment_value(channel):
     elif clockMode == 2:
         hourlyWage += 1
         display_value()
+    update_time(False)
 
 def decrement_value(channel):
     global clockMode, numPeople, hourlyWage, meetingStartTime
@@ -67,6 +69,7 @@ def decrement_value(channel):
     elif clockMode == 2 and hourlyWage > 0:
         hourlyWage -= 1
         display_value()
+    update_time(False)
 
 def display_value():
     global clockMode, numPeople, hourlyWage, meetingStartTime
@@ -91,6 +94,8 @@ def next_event(channel):
     else:
         clockMode = 0
         value_label.config(text="Waiting for Meeting")
+    print(clockMode)
+    update_time(False)
 
 def exit_clock(channel):
     print("Exiting")
