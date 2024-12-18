@@ -31,13 +31,14 @@ GPIO.setup(AUX_PIN, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 #   2 -> select hourly wage
 #   3 -> display money burned
 class ClockMode(enum):
-    SIMPLE_CLOCK_DISPLAY = 0
-    SELECT_NUM_PEOPLE = 1
-    SELECT_HOURLY_WAGE = 2
-    DISPLAY_BURNING_MONEY = 3
+    CLOCK = 0
+    SEL_PEEPS = 1
+    SEL_WAGE = 2
+    BURN = 3
 
 
 clockMode: ClockMode = ClockMode.SIMPLE_CLOCK_DISPLAY
+clockMode: ClockMode = ClockMode.CLOCK
 
 numPeople = DEFAULT_NUM_PEOPLE
 hourlyWage = DEFAULT_HOURLY_WAGE
@@ -50,7 +51,7 @@ app.title("Money Burner")
 
 def update_time(repeat: bool = True) -> None:
     global clockMode, numPeople, hourlyWage, meetingStartTime
-    if clockMode is ClockMode.DISPLAY_BURNING_MONEY:
+    if clockMode is ClockMode.BURN:
         elapsed_time = time.time() - meetingStartTime
         total_cost = numPeople * hourlyWage * (elapsed_time / 3600)
         clock_label.config(text=f"${total_cost:.2f}")
@@ -64,10 +65,10 @@ def update_time(repeat: bool = True) -> None:
 def increment_value(channel: int) -> None:
     global clockMode, numPeople, hourlyWage, meetingStartTime
     print("Increment")
-    if clockMode == ClockMode.SELECT_NUM_PEOPLE:
+    if clockMode == ClockMode.SEL_PEEPS:
         numPeople += 1
         display_value()
-    elif clockMode == ClockMode.SELECT_HOURLY_WAGE:
+    elif clockMode == ClockMode.SEL_WAGE:
         hourlyWage += 1
         display_value()
     update_time(False)
@@ -76,10 +77,10 @@ def increment_value(channel: int) -> None:
 def decrement_value(channel: int) -> None:
     global clockMode, numPeople, hourlyWage, meetingStartTime
     print("Decrement")
-    if clockMode == ClockMode.SELECT_NUM_PEOPLE and numPeople > 0:
+    if clockMode == ClockMode.SEL_PEEPS and numPeople > 0:
         numPeople -= 1
         display_value()
-    elif clockMode == ClockMode.SELECT_HOURLY_WAGE and hourlyWage > 0:
+    elif clockMode == ClockMode.SEL_WAGE and hourlyWage > 0:
         hourlyWage -= 1
         display_value()
     update_time(False)
@@ -87,22 +88,22 @@ def decrement_value(channel: int) -> None:
 
 def display_value() -> None:
     global clockMode, numPeople, hourlyWage, meetingStartTime
-    if clockMode == ClockMode.SELECT_NUM_PEOPLE:
+    if clockMode == ClockMode.SEL_PEEPS:
         clock_label.config(text=str(numPeople))
-    elif clockMode == ClockMode.SELECT_HOURLY_WAGE:
+    elif clockMode == ClockMode.SEL_WAGE:
         clock_label.config(text=str(hourlyWage))
 
 
 def next_event(channel: int) -> None:
     global clockMode, numPeople, hourlyWage, meetingStartTime
     print("Next")
-    if clockMode == ClockMode.SIMPLE_CLOCK_DISPLAY:
+    if clockMode == ClockMode.CLOCK:
         clockMode = 1
         value_label.config(text="People in Meeting")
-    elif clockMode == ClockMode.SELECT_NUM_PEOPLE:
+    elif clockMode == ClockMode.SEL_PEEPS:
         clockMode = ClockMode.SELECT_HOURLY_WAGE
         value_label.config(text="Cost per Person ($)")
-    elif clockMode == ClockMode.SELECT_HOURLY_WAGE:
+    elif clockMode == ClockMode.SEL_WAGE:
         clockMode = ClockMode.DISPLAY_BURNING_MONEY
         value_label.config(text="Meeting Cost ($)")
         meetingStartTime = time.time()
