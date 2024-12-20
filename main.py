@@ -100,8 +100,9 @@ app: tk.Tk = tk.Tk()
 width: int = app.winfo_screenwidth()
 height: int = app.winfo_screenheight()
 app.attributes("-fullscreen", True)
+app.overrideredirect(True)
 app.title("Money Burner")
-#app.wm_attributes("-transparentcolor", "black")
+# app.wm_attributes("-alpha", "black")
 
 backgrounds: dict[ClockMode, ImageTk.PhotoImage] = {
     ClockMode.CLOCK: ImageTk.PhotoImage((Image.open("./clock.jpg")).resize((width, height), Image.LANCZOS)),
@@ -139,12 +140,12 @@ def update_time(repeat: bool = True) -> None:
     if clockMode is ClockMode.BURN:
         elapsed_time = time.time() - meetingStartTime
         total_cost = numPeople * hourlyWage * (elapsed_time / 3600)
-        clock_label.config(text=f"${total_cost:.2f}")
+        canvas.itemconfigure("time", text=f"${total_cost:.2f}")
     else:
         current_time = time.strftime("%H:%M:%S")
-        clock_label.config(text=current_time)
+        canvas.itemconfigure("time", text=current_time)
     if repeat:
-        clock_label.after(1000, update_time)
+        canvas.after(1000, update_time)
 
 
 def increment_value(channel: int) -> None:
@@ -152,10 +153,10 @@ def increment_value(channel: int) -> None:
     print("Increment")
     if clockMode == ClockMode.SEL_PEEPS:
         numPeople += 1
-        display_value()
+        update_time(repeat=False)
     elif clockMode == ClockMode.SEL_WAGE:
         hourlyWage += 1
-        display_value()
+        update_time(repeat=False)
     update_time(False)
 
 
@@ -164,19 +165,11 @@ def decrement_value(channel: int) -> None:
     print("Decrement")
     if clockMode == ClockMode.SEL_PEEPS and numPeople > 0:
         numPeople -= 1
-        display_value()
+        update_time(repeat=False)
     elif clockMode == ClockMode.SEL_WAGE and hourlyWage > 0:
         hourlyWage -= 1
-        display_value()
+        update_time(repeat=False)
     update_time(False)
-
-
-def display_value() -> None:
-    global clockMode, numPeople, hourlyWage, meetingStartTime
-    if clockMode == ClockMode.SEL_PEEPS:
-        clock_label.config(text=str(numPeople))
-    elif clockMode == ClockMode.SEL_WAGE:
-        clock_label.config(text=str(hourlyWage))
 
 
 def next_event(channel: int) -> None:
@@ -186,23 +179,23 @@ def next_event(channel: int) -> None:
         animated_gif.stop_animation()
         clockMode = ClockMode.SEL_PEEPS
         update_background()
-        value_label.config(text="People in Meeting")
+        canvas.itemconfigure("Mode", text="People in Meeting")
     elif clockMode == ClockMode.SEL_PEEPS:
         animated_gif.stop_animation()
         clockMode = ClockMode.SEL_WAGE
         update_background()
-        value_label.config(text="Cost per Person ($)")
+        canvas.itemconfigure("Mode", text="Cost per Person ($)")
     elif clockMode == ClockMode.SEL_WAGE:
         animated_gif.start_animation()
         clockMode = ClockMode.BURN
         update_background()
-        value_label.config(text="Meeting Cost ($)")
+        canvas.itemconfigure("Mode", text="Meeting Cost ($)")
         meetingStartTime = time.time()
     else:
         animated_gif.stop_animation()
         clockMode = ClockMode.CLOCK
         update_background()
-        value_label.config(text="Waiting for Meeting")
+        canvas.itemconfigure("Mode", text="Waiting for Meeting")
     print(clockMode)
     update_time(False)
 
@@ -214,15 +207,11 @@ def exit_clock(channel: int) -> None:
     quit()
 
 
-value_label: tk.Label = tk.Label(
-    app, text="Waiting for Meeting", font=("Courier", 24)
-)
-value_label.pack()
+canvas.create_text(width / 2, height / 4, text="Waiting for Meeting", font=("Courier", 24), fill="white", tags="Mode")
 
-clock_label: tk.Label = tk.Label(
-    app, font=("Courier", 48), bg="black", fg="white"
-)
-clock_label.pack(fill="both", expand=1)
+canvas.create_text(width / 2, height / 2, text="", font=("Courier", 24), fill="white", tags="time")
+
+canvas.create_text(width / 2, height / 2, text="", font=("Courier", 24), fill="white", tags="money")
 
 update_time()
 
