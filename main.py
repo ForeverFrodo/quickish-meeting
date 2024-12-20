@@ -140,10 +140,18 @@ def update_time(repeat: bool = True) -> None:
     if clockMode is ClockMode.BURN:
         elapsed_time = time.time() - meetingStartTime
         total_cost = numPeople * hourlyWage * (elapsed_time / 3600)
-        canvas.itemconfigure("time", text=f"${total_cost:.2f}")
-    else:
+        canvas.itemconfigure("money", text=f"${total_cost:.2f}", font=("Courier", 80, "bold"))
         current_time = time.strftime("%H:%M:%S")
-        canvas.itemconfigure("time", text=current_time)
+        canvas.coords("time", width/4, height/16)
+        canvas.itemconfigure("time", text=current_time, font=("Courier", 40, "bold"))
+    elif clockMode is ClockMode.CLOCK:
+        current_time = time.strftime("%H:%M:%S")
+        canvas.coords("time", width/2, height/2)
+        canvas.itemconfigure("time", text=current_time, font=("Courier", 100, "bold"))
+        canvas.itemconfigure("money", text="")
+    else:
+        canvas.itemconfigure("time", text="")
+        canvas.itemconfigure("money", text="")
     if repeat:
         canvas.after(1000, update_time)
 
@@ -179,23 +187,31 @@ def next_event(channel: int) -> None:
         animated_gif.stop_animation()
         clockMode = ClockMode.SEL_PEEPS
         update_background()
-        canvas.itemconfigure("Mode", text="People in Meeting")
+        update_time(False)
+        canvas.coords("Mode", width / 2, height / 16)
+        canvas.itemconfigure("Mode", text="People in Meeting", font=("Courier", 26, "normal"))
     elif clockMode == ClockMode.SEL_PEEPS:
         animated_gif.stop_animation()
         clockMode = ClockMode.SEL_WAGE
         update_background()
-        canvas.itemconfigure("Mode", text="Cost per Person ($)")
+        update_time(False)
+        canvas.coords("Mode", width / 2, height / 16)
+        canvas.itemconfigure("Mode", text="Cost per Person ($)", font=("Courier", 26, "normal"))
     elif clockMode == ClockMode.SEL_WAGE:
         animated_gif.start_animation()
         clockMode = ClockMode.BURN
         update_background()
-        canvas.itemconfigure("Mode", text="Meeting Cost ($)")
+        update_time(True)
+        canvas.coords("Mode", width/2, height/4)
+        canvas.itemconfigure("Mode", text="Meeting Cost ($)", font=("Courier", 35, "bold"))
+        canvas.itemconfigure("time", text="")
         meetingStartTime = time.time()
     else:
         animated_gif.stop_animation()
         clockMode = ClockMode.CLOCK
         update_background()
-        canvas.itemconfigure("Mode", text="Waiting for Meeting")
+        update_time(True)
+        canvas.itemconfigure("Mode", text="")
     print(clockMode)
     update_time(False)
 
@@ -207,7 +223,7 @@ def exit_clock(channel: int) -> None:
     quit()
 
 
-canvas.create_text(width / 2, height / 4, text="Waiting for Meeting", font=("Courier", 24), fill="white", tags="Mode")
+canvas.create_text(width / 2, height / 16, text="", font=("Courier", 26), fill="white", tags="Mode")
 
 canvas.create_text(width / 2, height / 2, text="", font=("Courier", 24), fill="white", tags="time")
 
