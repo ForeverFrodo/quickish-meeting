@@ -3,6 +3,8 @@ import os
 import time
 import tkinter as tk
 
+from typing import Callable
+
 import RPi.GPIO as GPIO
 from PIL import Image, ImageSequence, ImageTk  # pip install pillow
 
@@ -31,7 +33,7 @@ GPIO.setup(AUX_PIN, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 #   1 -> select number of people
 #   2 -> select hourly wage
 #   3 -> display money burned
-class ClockMode(enum):
+class ClockMode(enum.Enum):
     CLOCK = 0
     SEL_PEEPS = 1
     SEL_WAGE = 2
@@ -43,12 +45,12 @@ class AnimatedGIF:
         self,
         canvas: tk.Canvas,
         gif_path: str,
-        get_width: callable[[None], int],
-        get_height: callable[[None], int],
+        get_width: Callable[[None], int],
+        get_height: Callable[[None], int],
     ) -> None:
         self.canvas: tk.Canvas = canvas
-        self.get_width: callable[[None], int] = get_width
-        self.get_height: callable[[None], int] = get_height
+        self.get_width: Callable[[None], int] = get_width
+        self.get_height: Callable[[None], int] = get_height
         self.update_coords()
         self.gif_path: str = gif_path
         self.sequence: list[ImageTk.PhotoImage] = []
@@ -95,33 +97,35 @@ hourlyWage = DEFAULT_HOURLY_WAGE
 meetingStartTime = 0
 
 app: tk.Tk = tk.Tk()
+width: int = app.winfo_screenwidth()
+height: int = app.winfo_screenheight()
 app.attributes("-fullscreen", True)
 app.title("Money Burner")
-app.wm_attributes("-transparentcolor", "black")
+#app.wm_attributes("-transparentcolor", "black")
 
 backgrounds: dict[ClockMode, ImageTk.PhotoImage] = {
-    ClockMode.CLOCK: ImageTk.PhotoImage(Image.open("./clock.jpg")),
-    ClockMode.SEL_PEEPS: ImageTk.PhotoImage(Image.open("./selections.jpg")),
-    ClockMode.SEL_WAGE: ImageTk.PhotoImage(Image.open("./selections.jpg")),
-    ClockMode.BURN: ImageTk.PhotoImage(Image.open("./burn.jpg")),
+    ClockMode.CLOCK: ImageTk.PhotoImage((Image.open("./clock.jpg")).resize((width, height), Image.LANCZOS)),
+    ClockMode.SEL_PEEPS: ImageTk.PhotoImage((Image.open("./selections.jpg")).resize((width, height), Image.LANCZOS)),
+    ClockMode.SEL_WAGE: ImageTk.PhotoImage((Image.open("./selections.jpg")).resize((width, height), Image.LANCZOS)),
+    ClockMode.BURN: ImageTk.PhotoImage((Image.open("./burn.jpg")).resize((width, height), Image.LANCZOS)),
 }
 
-canvas: tk.Canvas = tk.Canvas(app)
+canvas: tk.Canvas = tk.Canvas(app, width=width, height=height)
 canvas.pack(fill="both", expand=True)
+
+animated_gif: AnimatedGIF = AnimatedGIF(
+    canvas, "./fire.gif", app.winfo_screenwidth, app.winfo_screenheight
+)
+
 background_label: int = canvas.create_image(
-    int(app.winfo_width() / 2),
-    int(app.winfo_height() / 2),
+    int(width / 2),
+    int(height / 2),
     anchor="center",
     image=backgrounds[clockMode],
 )
 canvas.image = backgrounds[
     clockMode
 ]  # Keep a reference to avoid garbage collection
-
-animated_gif: AnimatedGIF = AnimatedGIF(
-    canvas, "./fire.gif", app.winfo_width, app.winfo_height
-)
-
 
 def update_background() -> None:
     new_photo = backgrounds[clockMode]
@@ -179,25 +183,25 @@ def next_event(channel: int) -> None:
     global clockMode, numPeople, hourlyWage, meetingStartTime
     print("Next")
     if clockMode == ClockMode.CLOCK:
-        update_background()
         animated_gif.stop_animation()
         clockMode = ClockMode.SEL_PEEPS
+        update_background()
         value_label.config(text="People in Meeting")
     elif clockMode == ClockMode.SEL_PEEPS:
-        update_background()
         animated_gif.stop_animation()
         clockMode = ClockMode.SEL_WAGE
+        update_background()
         value_label.config(text="Cost per Person ($)")
     elif clockMode == ClockMode.SEL_WAGE:
-        update_background()
-        animated_gif.stop_animation()
+        animated_gif.start_animation()
         clockMode = ClockMode.BURN
+        update_background()
         value_label.config(text="Meeting Cost ($)")
         meetingStartTime = time.time()
     else:
-        update_background()
-        animated_gif.start_animation()
+        animated_gif.stop_animation()
         clockMode = ClockMode.CLOCK
+        update_background()
         value_label.config(text="Waiting for Meeting")
     print(clockMode)
     update_time(False)
