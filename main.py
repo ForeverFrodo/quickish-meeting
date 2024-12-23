@@ -2,11 +2,19 @@ import enum
 import os
 import time
 import tkinter as tk
-
 from typing import Callable
 
 import RPi.GPIO as GPIO
 from PIL import Image, ImageSequence, ImageTk  # pip install pillow
+
+# TODO:
+# - Change background for burn mode
+#   - if time, get animation going
+# - Display numbers for people and money selection
+# - Center the words on selection screen
+# - On Burn screen, put clock on top left corner
+# - On Burn screen, make sure everything is visible
+# - Make it run on startup
 
 # fix broken environment variable
 if os.environ.get("DISPLAY", "") == "":
@@ -105,18 +113,23 @@ app.title("Money Burner")
 # app.wm_attributes("-alpha", "black")
 
 backgrounds: dict[ClockMode, ImageTk.PhotoImage] = {
-    ClockMode.CLOCK: ImageTk.PhotoImage((Image.open("./clock.jpg")).resize((width, height), Image.LANCZOS)),
-    ClockMode.SEL_PEEPS: ImageTk.PhotoImage((Image.open("./selections.jpg")).resize((width, height), Image.LANCZOS)),
-    ClockMode.SEL_WAGE: ImageTk.PhotoImage((Image.open("./selections.jpg")).resize((width, height), Image.LANCZOS)),
-    ClockMode.BURN: ImageTk.PhotoImage((Image.open("./burn.jpg")).resize((width, height), Image.LANCZOS)),
+    ClockMode.CLOCK: ImageTk.PhotoImage(
+        (Image.open("./clock.jpg")).resize((width, height), Image.LANCZOS)
+    ),
+    ClockMode.SEL_PEEPS: ImageTk.PhotoImage(
+        (Image.open("./selections.jpg")).resize((width, height), Image.LANCZOS)
+    ),
+    ClockMode.SEL_WAGE: ImageTk.PhotoImage(
+        (Image.open("./selections.jpg")).resize((width, height), Image.LANCZOS)
+    ),
+    ClockMode.BURN: ImageTk.PhotoImage(
+        (Image.open("./burn.jpg")).resize((width, height), Image.LANCZOS)
+    ),
 }
 
 canvas: tk.Canvas = tk.Canvas(app, width=width, height=height)
 canvas.pack(fill="both", expand=True)
 
-animated_gif: AnimatedGIF = AnimatedGIF(
-    canvas, "./fire.gif", app.winfo_screenwidth, app.winfo_screenheight
-)
 
 background_label: int = canvas.create_image(
     int(width / 2),
@@ -127,6 +140,14 @@ background_label: int = canvas.create_image(
 canvas.image = backgrounds[
     clockMode
 ]  # Keep a reference to avoid garbage collection
+
+animated_gif: AnimatedGIF = AnimatedGIF(
+    canvas,
+    "./fire_overlayed.gif",
+    app.winfo_screenwidth,
+    app.winfo_screenheight,
+)
+
 
 def update_background() -> None:
     new_photo = backgrounds[clockMode]
@@ -140,14 +161,29 @@ def update_time(repeat: bool = True) -> None:
     if clockMode is ClockMode.BURN:
         elapsed_time = time.time() - meetingStartTime
         total_cost = numPeople * hourlyWage * (elapsed_time / 3600)
-        canvas.itemconfigure("money", text=f"${total_cost:.2f}", font=("Courier", 80, "bold"))
+        canvas.itemconfigure(
+            "money",
+            text=f"${total_cost:.2f}",
+            font=("Courier", 80, "bold"),
+            fill="black",
+        )
         current_time = time.strftime("%H:%M:%S")
-        canvas.coords("time", width/4, height/16)
-        canvas.itemconfigure("time", text=current_time, font=("Courier", 40, "bold"))
+        canvas.coords("time", width / 4, height / 16)
+        canvas.itemconfigure(
+            "time",
+            text=current_time,
+            font=("Courier", 40, "bold"),
+            fill="black",
+        )
     elif clockMode is ClockMode.CLOCK:
         current_time = time.strftime("%H:%M:%S")
-        canvas.coords("time", width/2, height/2)
-        canvas.itemconfigure("time", text=current_time, font=("Courier", 100, "bold"))
+        canvas.coords("time", width / 2, height / 2)
+        canvas.itemconfigure(
+            "time",
+            text=current_time,
+            font=("Courier", 100, "bold"),
+            fill="white",
+        )
         canvas.itemconfigure("money", text="")
     else:
         canvas.itemconfigure("time", text="")
@@ -189,22 +225,27 @@ def next_event(channel: int) -> None:
         update_background()
         update_time(False)
         canvas.coords("Mode", width / 2, height / 16)
-        canvas.itemconfigure("Mode", text="People in Meeting", font=("Courier", 26, "normal"))
+        canvas.itemconfigure(
+            "Mode", text="People in Meeting", font=("Courier", 26, "normal")
+        )
     elif clockMode == ClockMode.SEL_PEEPS:
         animated_gif.stop_animation()
         clockMode = ClockMode.SEL_WAGE
         update_background()
         update_time(False)
         canvas.coords("Mode", width / 2, height / 16)
-        canvas.itemconfigure("Mode", text="Cost per Person ($)", font=("Courier", 26, "normal"))
+        canvas.itemconfigure(
+            "Mode", text="Cost per Person ($)", font=("Courier", 26, "normal")
+        )
     elif clockMode == ClockMode.SEL_WAGE:
         animated_gif.start_animation()
         clockMode = ClockMode.BURN
         update_background()
         update_time(True)
-        canvas.coords("Mode", width/2, height/4)
-        canvas.itemconfigure("Mode", text="Meeting Cost ($)", font=("Courier", 35, "bold"))
-        canvas.itemconfigure("time", text="")
+        canvas.coords("Mode", width / 2, height / 4)
+        canvas.itemconfigure(
+            "Mode", text="Meeting Cost ($)", font=("Courier", 35, "bold")
+        )
         meetingStartTime = time.time()
     else:
         animated_gif.stop_animation()
@@ -223,11 +264,32 @@ def exit_clock(channel: int) -> None:
     quit()
 
 
-canvas.create_text(width / 2, height / 16, text="", font=("Courier", 26), fill="white", tags="Mode")
+canvas.create_text(
+    width / 2,
+    height / 16,
+    text="",
+    font=("Courier", 26),
+    fill="black",
+    tags="Mode",
+)
 
-canvas.create_text(width / 2, height / 2, text="", font=("Courier", 24), fill="white", tags="time")
+canvas.create_text(
+    width / 2,
+    height / 2,
+    text="",
+    font=("Courier", 24),
+    fill="white",
+    tags="time",
+)
 
-canvas.create_text(width / 2, height / 2, text="", font=("Courier", 24), fill="white", tags="money")
+canvas.create_text(
+    width / 2,
+    height / 2,
+    text="",
+    font=("Courier", 24),
+    fill="white",
+    tags="money",
+)
 
 update_time()
 
