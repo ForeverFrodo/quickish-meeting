@@ -23,9 +23,9 @@ if os.environ.get("DISPLAY", "") == "":
 
 # GPIO setup
 GPIO.setmode(GPIO.BCM)
-INCREMENT_PIN: int = 0
-DECREMENT_PIN: int = 1
-MODE_PIN: int = 2
+INCREMENT_PIN: int = 1
+DECREMENT_PIN: int = 2
+MODE_PIN: int = 0
 AUX_PIN: int = 3
 DEFAULT_NUM_PEOPLE: int = 2
 DEFAULT_HOURLY_WAGE: int = 40  # dollars per hour
@@ -68,6 +68,7 @@ class AnimatedGIF:
             self.x, self.y, anchor="center", image=self.sequence[0]
         )
         self.running: bool = False
+        self.canvas.itemconfigure(self.image_item, state="hidden")
 
     def update_coords(self) -> None:
         """Gets the center coordinate and saves it to self.x and self.y"""
@@ -85,7 +86,7 @@ class AnimatedGIF:
             self.canvas.itemconfig(self.image_item, image=frame)
             self.index = (self.index + 1) % len(self.sequence)
             self.canvas.after(
-                100, self.update_frame
+                50, self.update_frame
             )  # Adjust the delay to control the speed
 
     def start_animation(self) -> None:
@@ -163,31 +164,22 @@ def update_time(repeat: bool = True) -> None:
         total_cost = numPeople * hourlyWage * (elapsed_time / 3600)
         canvas.itemconfigure(
             "money",
-            text=f"${total_cost:.2f}",
-            font=("Courier", 80, "bold"),
-            fill="black",
+            text=f"${total_cost:.2f}"
         )
         current_time = time.strftime("%H:%M:%S")
-        canvas.coords("time", width / 4, height / 16)
         canvas.itemconfigure(
             "time",
-            text=current_time,
-            font=("Courier", 40, "bold"),
-            fill="black",
+            text=current_time
         )
     elif clockMode is ClockMode.CLOCK:
         current_time = time.strftime("%H:%M:%S")
-        canvas.coords("time", width / 2, height / 2)
         canvas.itemconfigure(
             "time",
-            text=current_time,
-            font=("Courier", 100, "bold"),
-            fill="white",
+            text=current_time
         )
-        canvas.itemconfigure("money", text="")
     else:
-        canvas.itemconfigure("time", text="")
-        canvas.itemconfigure("money", text="")
+        canvas.itemconfigure("num", text=str(numPeople))
+        canvas.itemconfigure("wage", text=str(hourlyWage))
     if repeat:
         canvas.after(1000, update_time)
 
@@ -220,39 +212,71 @@ def next_event(channel: int) -> None:
     global clockMode, numPeople, hourlyWage, meetingStartTime
     print("Next")
     if clockMode == ClockMode.CLOCK:
+
         animated_gif.stop_animation()
         clockMode = ClockMode.SEL_PEEPS
         update_background()
-        update_time(False)
+
+        canvas.itemconfigure("Mode", text="People in Meeting", font=("Courier", 26, "normal"))
         canvas.coords("Mode", width / 2, height / 16)
-        canvas.itemconfigure(
-            "Mode", text="People in Meeting", font=("Courier", 26, "normal")
-        )
+        canvas.itemconfigure("time", text="")
+        canvas.coords("time", 0, 0)
+        canvas.itemconfigure("money", text="")
+        canvas.coords("money", 0, 0)
+        canvas.itemconfigure("num", text="")
+        canvas.coords("num", width / 2, height / 3.6)
+        canvas.itemconfigure("wage", text="")
+        canvas.coords("wage", width / 2, height / 2.25)
+
     elif clockMode == ClockMode.SEL_PEEPS:
         animated_gif.stop_animation()
         clockMode = ClockMode.SEL_WAGE
         update_background()
-        update_time(False)
+
+        canvas.itemconfigure("Mode", text="Cost per Person ($)", font=("Courier", 26, "normal"))
         canvas.coords("Mode", width / 2, height / 16)
-        canvas.itemconfigure(
-            "Mode", text="Cost per Person ($)", font=("Courier", 26, "normal")
-        )
+        canvas.itemconfigure("time", text="")
+        canvas.coords("time", 0, 0)
+        canvas.itemconfigure("money", text="")
+        canvas.coords("money", 0, 0)
+        canvas.itemconfigure("num", text="")
+        canvas.coords("num", width / 2, height / 3.6)
+        canvas.itemconfigure("wage", text="")
+        canvas.coords("wage", width / 2, height / 2.25)
+
     elif clockMode == ClockMode.SEL_WAGE:
         animated_gif.start_animation()
         clockMode = ClockMode.BURN
         update_background()
-        update_time(True)
+
+        canvas.itemconfigure("Mode", text="Meeting Cost ($)", font=("Courier", 35, "bold"))
         canvas.coords("Mode", width / 2, height / 4)
-        canvas.itemconfigure(
-            "Mode", text="Meeting Cost ($)", font=("Courier", 35, "bold")
-        )
+        canvas.itemconfigure("time", text="", font=("Courier", 40, "bold"))
+        canvas.coords("time", width / 4.5, height / 8)
+        canvas.itemconfigure("money", text="", font=("Courier", 80, "bold"))
+        canvas.coords("money", width / 2, height / 2)
+        canvas.itemconfigure("num", text="")
+        canvas.coords("num", 0, 0)
+        canvas.itemconfigure("wage", text="")
+        canvas.coords("wage", 0, 0)
+
         meetingStartTime = time.time()
     else:
         animated_gif.stop_animation()
         clockMode = ClockMode.CLOCK
         update_background()
-        update_time(True)
+
         canvas.itemconfigure("Mode", text="")
+        canvas.coords("Mode", 0, 0)
+        canvas.itemconfigure("time", font=("Courier", 100, "bold"))
+        canvas.coords("time", width / 2, height / 2)
+        canvas.itemconfigure("money", text="")
+        canvas.coords("money", 0, 0)
+        canvas.itemconfigure("num", text="")
+        canvas.coords("num", 0, 0)
+        canvas.itemconfigure("wage", text="")
+        canvas.coords("wage", 0, 0)
+
     print(clockMode)
     update_time(False)
 
@@ -269,7 +293,7 @@ canvas.create_text(
     height / 16,
     text="",
     font=("Courier", 26),
-    fill="black",
+    fill="white",
     tags="Mode",
 )
 
@@ -277,7 +301,7 @@ canvas.create_text(
     width / 2,
     height / 2,
     text="",
-    font=("Courier", 24),
+    font=("Courier", 100, "bold"),
     fill="white",
     tags="time",
 )
@@ -289,6 +313,24 @@ canvas.create_text(
     font=("Courier", 24),
     fill="white",
     tags="money",
+)
+
+canvas.create_text(
+    width / 2,
+    height / 4,
+    text="",
+    font=("Courier", 26),
+    fill="black",
+    tags="num",
+)
+
+canvas.create_text(
+    width / 2,
+    height / 2.5,
+    text="",
+    font=("Courier", 26),
+    fill="black",
+    tags="wage",
 )
 
 update_time()
