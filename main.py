@@ -28,7 +28,7 @@ DECREMENT_PIN: int = 2
 MODE_PIN: int = 0
 AUX_PIN: int = 3
 DEFAULT_NUM_PEOPLE: int = 2
-DEFAULT_HOURLY_WAGE: int = 40  # dollars per hour
+DEFAULT_HOURLY_WAGE: int = 50  # dollars per hour
 
 GPIO.setup(INCREMENT_PIN, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 GPIO.setup(DECREMENT_PIN, GPIO.IN, pull_up_down=GPIO.PUD_UP)
@@ -86,7 +86,7 @@ class AnimatedGIF:
             self.canvas.itemconfig(self.image_item, image=frame)
             self.index = (self.index + 1) % len(self.sequence)
             self.canvas.after(
-                50, self.update_frame
+                100, self.update_frame
             )  # Adjust the delay to control the speed
 
     def start_animation(self) -> None:
@@ -177,9 +177,11 @@ def update_time(repeat: bool = True) -> None:
             "time",
             text=current_time
         )
+    elif clockMode is ClockMode.SEL_PEEPS:
+        canvas.itemconfigure("num", text=str(numPeople))
     else:
         canvas.itemconfigure("num", text=str(numPeople))
-        canvas.itemconfigure("wage", text=str(hourlyWage))
+        canvas.itemconfigure("wage", text="$" + str(hourlyWage))
     if repeat:
         canvas.after(1000, update_time)
 
@@ -191,7 +193,7 @@ def increment_value(channel: int) -> None:
         numPeople += 1
         update_time(repeat=False)
     elif clockMode == ClockMode.SEL_WAGE:
-        hourlyWage += 1
+        hourlyWage += 5
         update_time(repeat=False)
     update_time(False)
 
@@ -203,7 +205,7 @@ def decrement_value(channel: int) -> None:
         numPeople -= 1
         update_time(repeat=False)
     elif clockMode == ClockMode.SEL_WAGE and hourlyWage > 0:
-        hourlyWage -= 1
+        hourlyWage -= 5
         update_time(repeat=False)
     update_time(False)
 
@@ -218,15 +220,15 @@ def next_event(channel: int) -> None:
         update_background()
 
         canvas.itemconfigure("Mode", text="People in Meeting", font=("Courier", 26, "normal"))
-        canvas.coords("Mode", width / 2, height / 16)
+        canvas.coords("Mode", width / 1.95, height / 16)
         canvas.itemconfigure("time", text="")
         canvas.coords("time", 0, 0)
         canvas.itemconfigure("money", text="")
         canvas.coords("money", 0, 0)
         canvas.itemconfigure("num", text="")
-        canvas.coords("num", width / 2, height / 3.6)
+        canvas.coords("num", width / 1.95, height / 3.6)
         canvas.itemconfigure("wage", text="")
-        canvas.coords("wage", width / 2, height / 2.25)
+        canvas.coords("wage", width / 1.95, height / 2.25)
 
     elif clockMode == ClockMode.SEL_PEEPS:
         animated_gif.stop_animation()
@@ -234,26 +236,26 @@ def next_event(channel: int) -> None:
         update_background()
 
         canvas.itemconfigure("Mode", text="Cost per Person ($)", font=("Courier", 26, "normal"))
-        canvas.coords("Mode", width / 2, height / 16)
+        canvas.coords("Mode", width / 1.95, height / 16)
         canvas.itemconfigure("time", text="")
         canvas.coords("time", 0, 0)
         canvas.itemconfigure("money", text="")
         canvas.coords("money", 0, 0)
         canvas.itemconfigure("num", text="")
-        canvas.coords("num", width / 2, height / 3.6)
+        canvas.coords("num", width / 1.95, height / 3.6)
         canvas.itemconfigure("wage", text="")
-        canvas.coords("wage", width / 2, height / 2.25)
+        canvas.coords("wage", width / 1.95, height / 2.25)
 
     elif clockMode == ClockMode.SEL_WAGE:
         animated_gif.start_animation()
         clockMode = ClockMode.BURN
         update_background()
 
-        canvas.itemconfigure("Mode", text="Meeting Cost ($)", font=("Courier", 35, "bold"))
+        canvas.itemconfigure("Mode", text="", font=("Courier", 35, "bold"))
         canvas.coords("Mode", width / 2, height / 4)
-        canvas.itemconfigure("time", text="", font=("Courier", 40, "bold"))
-        canvas.coords("time", width / 4.5, height / 8)
-        canvas.itemconfigure("money", text="", font=("Courier", 80, "bold"))
+        canvas.itemconfigure("time", text="", font=("Courier", 40, "bold"), fill="black")
+        canvas.coords("time", width / 4.7, height / 8.2)
+        canvas.itemconfigure("money", text="", font=("Courier", 140, "bold"), fill="black")
         canvas.coords("money", width / 2, height / 2)
         canvas.itemconfigure("num", text="")
         canvas.coords("num", 0, 0)
@@ -268,7 +270,7 @@ def next_event(channel: int) -> None:
 
         canvas.itemconfigure("Mode", text="")
         canvas.coords("Mode", 0, 0)
-        canvas.itemconfigure("time", font=("Courier", 100, "bold"))
+        canvas.itemconfigure("time", font=("Courier", 100, "bold"), fill="white")
         canvas.coords("time", width / 2, height / 2)
         canvas.itemconfigure("money", text="")
         canvas.coords("money", 0, 0)
@@ -310,7 +312,7 @@ canvas.create_text(
     width / 2,
     height / 2,
     text="",
-    font=("Courier", 24),
+    font=("Courier", 80),
     fill="white",
     tags="money",
 )
@@ -319,7 +321,7 @@ canvas.create_text(
     width / 2,
     height / 4,
     text="",
-    font=("Courier", 26),
+    font=("Courier", 26, "bold"),
     fill="black",
     tags="num",
 )
@@ -328,7 +330,7 @@ canvas.create_text(
     width / 2,
     height / 2.5,
     text="",
-    font=("Courier", 26),
+    font=("Courier", 26, "bold"),
     fill="black",
     tags="wage",
 )
