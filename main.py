@@ -108,6 +108,7 @@ meetingStartTime = 0
 app: tk.Tk = tk.Tk()
 width: int = app.winfo_screenwidth()
 height: int = app.winfo_screenheight()
+app.config(cursor="none")
 app.attributes("-fullscreen", True)
 app.overrideredirect(True)
 app.title("Money Burner")
@@ -133,8 +134,8 @@ canvas.pack(fill="both", expand=True)
 
 
 background_label: int = canvas.create_image(
-    int(width / 2),
-    int(height / 2),
+    width / 2,
+    height / 2,
     anchor="center",
     image=backgrounds[clockMode],
 )
@@ -281,15 +282,7 @@ def next_event(channel: int) -> None:
 
     print(clockMode)
     update_time(False)
-
-
-def exit_clock(channel: int) -> None:
-    print("Exiting")
-    global app
-    app.quit()
-    quit()
-
-
+    
 canvas.create_text(
     width / 2,
     height / 16,
@@ -335,6 +328,19 @@ canvas.create_text(
     tags="wage",
 )
 
+secret_message = ImageTk.PhotoImage(
+        Image.open("./message.png").resize((width, int(height/1.5)), Image.LANCZOS)
+    )
+secret_item = canvas.create_image(
+            width / 2, height / 2, anchor="center", image=secret_message, state="hidden"
+        )
+
+def display_secret_message(channel: int) -> None:
+    if GPIO.input(AUX_PIN):
+        canvas.itemconfigure(secret_item, state="hidden")
+    else:
+        canvas.itemconfigure(secret_item, state="normal")
+
 update_time()
 
 GPIO.add_event_detect(
@@ -347,7 +353,7 @@ GPIO.add_event_detect(
     MODE_PIN, GPIO.FALLING, callback=next_event, bouncetime=300
 )
 GPIO.add_event_detect(
-    AUX_PIN, GPIO.FALLING, callback=exit_clock, bouncetime=300
+    AUX_PIN, GPIO.BOTH, callback=display_secret_message, bouncetime=300
 )
 
 app.mainloop()
